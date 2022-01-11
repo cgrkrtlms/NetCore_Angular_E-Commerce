@@ -2,6 +2,7 @@
 using API.Core.Models;
 using API.Core.Specifications;
 using API.Dtos;
+using API.Helpers;
 using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -27,9 +28,9 @@ namespace API.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<ProductDto>> GetProductByIdAsync(int id)
+        public async Task<ActionResult<ProductDto>> GetProductByIdAsync(ProductSpecParams productSpecParams)
         {
-            var spec = new ProductsWithProduceTypeAndBrandsSpecification();
+            var spec = new ProductsWithProduceTypeAndBrandsSpecification(productSpecParams);
             //return await _productRepository.GetEntityWithSpec(spec);
             var product = await _productRepository.GetEntityWithSpec(spec);
             return _mapper.Map<Product, ProductDto>(product);
@@ -38,22 +39,17 @@ namespace API.Controllers
         /// All Product List
         /// </summary>
         /// <returns></returns>
-        public async Task<ActionResult<IReadOnlyList<ProductDto>>> GetProducts()
+        public async Task<ActionResult<Pagination<ProductDto>>> GetProducts(ProductSpecParams productSpecParams)
         {
-            var spec = new ProductsWithProduceTypeAndBrandsSpecification();
-            var data = await _productRepository.ListAsync(spec);
-            //return Ok(data);
-            //return data.Select(x => new ProductDto
-            //{
-            //    ID = x.ID,
-            //    Name = x.Name,
-            //    Description = x.Description,
-            //    ImageUrl = x.ImageUrl,
-            //    Price = x.Price,
-            //    ProductBrand = x.ProductBrand != null ? x.ProductBrand.Name : string.Empty,
-            //    ProductType = x.ProductType != null ? x.ProductType.Name : string.Empty
-            //}).ToList();
-            return Ok(_mapper.Map<IReadOnlyList<Product>, IReadOnlyList<ProductDto>>(data));
+            var spec = new ProductsWithProduceTypeAndBrandsSpecification(productSpecParams);
+
+            var countSpec = new ProductWithFiltersForCountSpecification(productSpecParams);
+            var totalItems = await _productRepository.CountAsync(spec);
+            var products = await _productRepository.ListAsync(spec);
+            var data = _mapper.Map<IReadOnlyList<Product>, IReadOnlyList<ProductDto>>(products);
+             
+
+            return Ok(new Pagination<ProductDto>(productSpecParams.PageIndex, productSpecParams.PageSize,totalItems,data));
         }
         [HttpGet("brands")]
         public async Task<ActionResult<IReadOnlyList<ProductBrand>>> GetProductBrands()

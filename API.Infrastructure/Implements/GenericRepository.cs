@@ -42,5 +42,10 @@ namespace API.Infrastructure.Implements
         {
             return SpecificationEvaluator<T>.GetQuery(_contex.Set<T>().AsQueryable(),spec);
         }
+
+        public async Task<int> CountAsync(ISpecification<T> spec)
+        {
+            return await ApplySpecification(spec).CountAsync();
+        }
     }
 }
